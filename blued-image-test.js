@@ -9,7 +9,7 @@ const contentType = (
 const body = $response.body;
 
 // Mac receiver. Change this only if your Mac LAN IP changes.
-const UPLOAD_URL = "http://192.168.1.137:8080/upload";
+const UPLOAD_URL = "http://192.168.1.210:8080/upload";
 
 function getLength(value) {
   if (value == null) return 0;
