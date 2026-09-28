@@ -5,15 +5,55 @@ const contentType =
   headers["content-type"] ||
   "unknown";
 
-let size = 0;
+const body = $response.body;
+const bodyBytes = $response.bodyBytes;
 
-if ($response.bodyBytes) {
-  size = $response.bodyBytes.byteLength || 0;
+function safeLength(value) {
+  if (value == null) return 0;
+
+  if (typeof value === "string") {
+    return value.length;
+  }
+
+  if (typeof value.byteLength === "number") {
+    return value.byteLength;
+  }
+
+  if (typeof value.length === "number") {
+    return value.length;
+  }
+
+  return 0;
+}
+
+function describe(value) {
+  if (value == null) return "null";
+
+  let ctor = "unknown";
+  try {
+    ctor = value.constructor && value.constructor.name
+      ? value.constructor.name
+      : "unknown";
+  } catch (_) {}
+
+  return `type=${typeof value}, ctor=${ctor}, length=${safeLength(value)}`;
 }
 
 console.log(
-  `[BluedImage] type=${contentType}, size=${size} bytes, url=${$request.url}`
+  `[BluedImage] contentType=${contentType}, url=${$request.url}`
 );
 
-// Keep the original response unchanged.
+console.log(
+  `[BluedImage] body: ${describe(body)}`
+);
+
+console.log(
+  `[BluedImage] bodyBytes: ${describe(bodyBytes)}`
+);
+
+console.log(
+  `[BluedImage] headers=${JSON.stringify(headers)}`
+);
+
+// Diagnostic only: do not modify the original image response.
 $done({});
