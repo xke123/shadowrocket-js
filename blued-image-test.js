@@ -1,59 +1,60 @@
 const headers = $response.headers || {};
 
-const contentType =
+const contentType = (
   headers["Content-Type"] ||
   headers["content-type"] ||
-  "unknown";
+  ""
+).toLowerCase();
 
 const body = $response.body;
-const bodyBytes = $response.bodyBytes;
 
-function safeLength(value) {
+// Mac receiver. Change this only if your Mac LAN IP changes.
+const UPLOAD_URL = "http://192.168.1.137:8080/upload";
+
+function getLength(value) {
   if (value == null) return 0;
-
-  if (typeof value === "string") {
-    return value.length;
-  }
-
-  if (typeof value.byteLength === "number") {
-    return value.byteLength;
-  }
-
-  if (typeof value.length === "number") {
-    return value.length;
-  }
-
+  if (typeof value.byteLength === "number") return value.byteLength;
+  if (typeof value.length === "number") return value.length;
   return 0;
 }
 
-function describe(value) {
-  if (value == null) return "null";
+const isImage =
+  contentType.startsWith("image/jpeg") ||
+  contentType.startsWith("image/png") ||
+  contentType.startsWith("image/webp");
 
-  let ctor = "unknown";
-  try {
-    ctor = value.constructor && value.constructor.name
-      ? value.constructor.name
-      : "unknown";
-  } catch (_) {}
+const size = getLength(body);
 
-  return `type=${typeof value}, ctor=${ctor}, length=${safeLength(value)}`;
+if (!isImage || !body || size === 0) {
+  $done({});
+} else {
+  console.log(
+    `[BluedImage] captured type=${contentType}, size=${size}, url=${$request.url}`
+  );
+
+  $httpClient.post(
+    {
+      url: UPLOAD_URL,
+      headers: {
+        "Content-Type": contentType.split(";")[0] || "application/octet-stream",
+        "X-Blued-Source-URL": $request.url,
+        "X-Blued-Image-Size": String(size)
+      },
+      body: body
+    },
+    function (error, response, data) {
+      if (error) {
+        console.log(`[BluedImage] upload failed: ${error}`);
+      } else {
+        const status =
+          (response && (response.status || response.statusCode)) || "unknown";
+        console.log(
+          `[BluedImage] upload finished status=${status}, response=${data || ""}`
+        );
+      }
+
+      // Never alter Blued's original image response.
+      $done({});
+    }
+  );
 }
-
-console.log(
-  `[BluedImage] contentType=${contentType}, url=${$request.url}`
-);
-
-console.log(
-  `[BluedImage] body: ${describe(body)}`
-);
-
-console.log(
-  `[BluedImage] bodyBytes: ${describe(bodyBytes)}`
-);
-
-console.log(
-  `[BluedImage] headers=${JSON.stringify(headers)}`
-);
-
-// Diagnostic only: do not modify the original image response.
-$done({});
